@@ -68,21 +68,21 @@
   <!-- Stat badges -->
   <!-- Badge 1: zero deps -->
   <rect x="118" y="195" width="120" height="28" rx="14" fill="#313244" opacity="0.8"/>
-  <circle cx="140" cy="209" r="4" fill="#a6e3a1"/>
-  <text x="178" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">zero deps</text>
+  <circle cx="136" cy="209" r="3.5" fill="#a6e3a1"/>
+  <text x="185" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">zero deps</text>
 
   <!-- Badge 2: token-gated -->
   <rect x="258" y="195" width="130" height="28" rx="14" fill="#313244" opacity="0.8"/>
-  <circle cx="280" cy="209" r="4" fill="#89b4fa"/>
-  <text x="323" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">token-gated</text>
+  <circle cx="276" cy="209" r="3.5" fill="#89b4fa"/>
+  <text x="330" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">token-gated</text>
 
   <!-- Badge 3: 12 loaders -->
   <rect x="408" y="195" width="128" height="28" rx="14" fill="#313244" opacity="0.8"/>
-  <circle cx="430" cy="209" r="4" fill="#cba6f7"/>
-  <text x="472" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">12 loaders</text>
+  <circle cx="426" cy="209" r="3.5" fill="#cba6f7"/>
+  <text x="480" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">12 loaders</text>
 
   <!-- Badge 4: encrypt at rest -->
   <rect x="556" y="195" width="140" height="28" rx="14" fill="#313244" opacity="0.8"/>
-  <circle cx="578" cy="209" r="4" fill="#94e2d5"/>
-  <text x="626" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">encrypt at rest</text>
+  <circle cx="574" cy="209" r="3.5" fill="#94e2d5"/>
+  <text x="634" y="214" text-anchor="middle" font-family="'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace" font-size="11" fill="#cdd6f4">encrypt at rest</text>
 </svg>
