@@ -156,6 +156,7 @@ Information
   tokens                              List active tokens
   token revoke <value>                Revoke a token
   callbacks                           Show delivery log
+  cheatsheet --host IP --port PORT    Delivery technique reference
 
 Control
   exit                                Shutdown + zero all payloads
@@ -195,6 +196,16 @@ generate p1 socat-tls --host 10.0.0.1 --port 4443 --ttl 1h --single-use --source
 # Multiple uses with CIDR lock
 generate p1 memfd --host 10.0.0.1 --port 443 --max-uses 5 --source-lock 192.168.1.0/24
 ```
+
+## Cheatsheet
+
+Generate a standalone technique reference card — no payloads, no tokens, no server required:
+
+```bash
+cheatsheet --host 10.0.0.1 --port 443
+```
+
+Outputs all 12 delivery techniques as ready-to-use one-liners organized by category (Socat TLS, Socat TCP, HTTP/HTTPS, Raw TCP, Fileless) with host and port substituted in. Raw-protocol techniques (socat, bash /dev/tcp) become reverse shell commands. HTTP-based techniques (curl, wget, python, perl) use a `<URL>` placeholder for the operator's own file server.
 
 ## Architecture
 

