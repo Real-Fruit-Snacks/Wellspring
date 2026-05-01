@@ -1,233 +1,133 @@
-<div align="center">
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Real-Fruit-Snacks/Wellspring/main/docs/assets/logo-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Real-Fruit-Snacks/Wellspring/main/docs/assets/logo-light.svg">
-  <img alt="Wellspring" src="https://raw.githubusercontent.com/Real-Fruit-Snacks/Wellspring/main/docs/assets/logo-dark.svg" width="520">
+  <img alt="Wellspring" src="https://raw.githubusercontent.com/Real-Fruit-Snacks/Wellspring/main/docs/assets/logo-dark.svg" width="100%">
 </picture>
 
-![Go](https://img.shields.io/badge/language-Go-00ADD8.svg)
-![Platform](https://img.shields.io/badge/platform-Linux-lightgrey)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+> [!IMPORTANT]
+> **Payload delivery server for authorized red team engagements.** Single Go binary with token-gated TLS delivery, 12 loader methods, AES-256-GCM encryption at rest, memory zeroing on shutdown, and decoy nginx infrastructure.
 
-**Payload delivery server for authorized red team engagements.**
-
-Single Go binary with zero external dependencies. Token-gated TLS delivery with 12 loader methods, AES-256-GCM encryption at rest, memory zeroing on shutdown, and decoy nginx infrastructure.
-
-> **Authorization Required**: Designed exclusively for authorized security testing with explicit written permission.
-
-</div>
+> *A wellspring is an abundant natural source that flows continuously, providing steady sustenance to those who need it. Perfect metaphor for a payload delivery server—a reliable, controlled source that provides the tools red teams need for authorized security testing operations.*
 
 ---
 
-## Quick Start
+## §1 / Premise
 
-### Prerequisites
+Wellspring is a **payload delivery server** designed for authorized red team engagements with secure, token-gated access control. Deploy a single Go binary that serves payloads via 12 different loader methods with dual TLS listeners and comprehensive anti-forensics measures.
 
-- **Go** 1.21+ (build toolchain)
-- **Make** (build automation)
+The server implements AES-256-GCM encryption at rest, HMAC-SHA256 token validation, configurable TTL and IP constraints, memory zeroing on shutdown, and nginx decoy infrastructure. All operations use Go standard library with zero external dependencies.
 
-### Build
+**Authorization Required**: Designed exclusively for authorized security testing with explicit written permission.
+
+---
+
+## §2 / Specs
+
+| KEY             | VALUE                                                                       |
+|-----------------|-----------------------------------------------------------------------------|
+| **DELIVERY**    | **12 loader methods** — socat TLS/TCP, curl, wget, bash, python, memfd |
+| **SECURITY**    | **Token-gated access** with HMAC-SHA256, TTL, IP locks, max-use limits |
+| **CRYPTO**      | **AES-256-GCM encryption** at rest with memory zeroing on shutdown |
+| **LISTENERS**   | **Dual TLS servers** — HTTPS :443 and raw TLS :4443 with TLS 1.3 minimum |
+| **STEALTH**     | **Nginx decoy infrastructure** with identical 404 pages and headers |
+| **BINARY**      | **Single Go executable** with zero external dependencies |
+| **FILELESS**    | **memfd_create execution** entirely in memory with no disk writes |
+| **PLATFORM**    | **Linux deployment** with Kernel 3.17+ for memfd support |
+
+---
+
+## §3 / Quickstart
+
+**Prerequisites:** Go 1.21+, Linux deployment target
 
 ```bash
+# Build static binary
 git clone https://github.com/Real-Fruit-Snacks/Wellspring
-cd Wellspring
-make build    # -> build/wellspring
-```
+cd Wellspring && make build
 
-### Verify
-
-```bash
-# Generate TLS cert
+# Generate TLS certificate with SNI decoy
 ./build/wellspring -gencert -sni cloudflare-dns.com
 
-# Start server
+# Start token-gated payload server
 ./build/wellspring -cert server.crt -key server.key
 
-# Interactive console:
-#   payload add ./implant --name undertow
-#   generate p1 all --host 10.0.0.1 --port 443
+# Interactive console operations
+# payload add ./implant --name undertow
+# generate p1 all --host 10.0.0.1 --port 443
 ```
 
 ---
 
-## Features
+## §4 / Reference
 
-### Token-Gated Access
+```bash
+# SERVER STARTUP
+wellspring -cert server.crt -key server.key              # Dual TLS listeners
+wellspring -listen :443 -raw-listen :4443                # Custom ports
+wellspring -decoy ./custom-404.html                      # Custom nginx decoy
 
-Every payload requires a valid token with configurable TTL, max uses, and source IP/CIDR lock. Tokens use HMAC-SHA256 keyed hashing to prevent timing attacks.
+# PAYLOAD MANAGEMENT
+payload add ./implant --name undertow                     # Load binary with auto-detect
+payload list                                              # Show loaded payloads
+payload remove p1                                         # Remove and zero memory
 
-```
-generate p1 socat-tls --host 10.0.0.1 --port 4443 --ttl 1h --single-use --source-lock 10.0.0.0/24
-```
+# TOKEN-GATED GENERATION
+generate p1 socat-tls --host 10.0.0.1 --port 4443        # Raw TLS delivery
+generate p1 curl --host 10.0.0.1 --port 443             # HTTPS delivery
+generate p1 memfd --host 10.0.0.1 --port 443             # Fileless execution
+generate p1 all --host 10.0.0.1 --port 443              # All compatible loaders
 
-### 12 Delivery Methods
+# ACCESS CONTROL
+generate p1 curl --ttl 1h --single-use                   # TTL and use limits
+generate p1 wget --max-uses 5 --source-lock 10.0.0.0/24 # IP/CIDR restrictions
 
-Socat TLS, socat TCP, socat memfd, socat PTY, curl, wget, bash /dev/tcp, python urllib, netcat, perl IO::Socket::SSL, memfd_create fileless, and /dev/shm tmpfs staging.
-
-```
-generate p1 all --host 10.0.0.1 --port 443
-```
-
-### Encrypt at Rest
-
-All payloads stored with AES-256-GCM encryption in memory. Plaintext is zeroed after delivery with `runtime.KeepAlive` to prevent compiler elision.
-
-```go
-// Encryption keys and HMAC keys are zeroed on exit
-```
-
-### Dual TLS Listeners
-
-HTTPS on `:443` serves payloads at `GET /p/<token>` for HTTP-based loaders. Raw TLS on `:4443` reads a token from the first line and writes raw payload bytes for socat connections.
-
-```
--listen :443        # HTTPS listener
--raw-listen :4443   # Raw TLS listener (TLS 1.3 minimum)
-```
-
-### Fileless Execution
-
-`memfd_create` loaders execute payloads entirely in memory with no file touching disk. `/dev/shm` staging uses tmpfs for environments where memfd is unavailable.
-
-```
-generate p1 memfd --host 10.0.0.1 --port 443
-generate p1 devshm --host 10.0.0.1 --port 443
-```
-
-### Anti-Forensics
-
-SIGINT/SIGTERM trigger immediate zeroing of all payloads, tokens, and cryptographic keys before exit. Background goroutine enforces TTL purging with sensitive field zeroing.
-
-```
-token revoke <value>   # Zeros token in-place via unsafe.StringData
-exit                   # Shutdown + zero all payloads, tokens, keys
-```
-
-### Decoy Infrastructure
-
-All HTTP responses use `Server: nginx/1.24.0` header. Invalid tokens and unknown paths return an identical nginx 404 page, making the server indistinguishable from a default nginx installation.
-
-```
--decoy ./custom-404.html   # Optional custom decoy page
-```
-
-### Stager Generation
-
-Generate ready-to-use one-liner stagers for any loaded payload, or use the cheatsheet command for a standalone technique reference card.
-
-```
-generate p1 curl --host 10.0.0.1 --port 443 --max-uses 5
-cheatsheet --host 10.0.0.1 --port 443
+# OPERATIONS
+tokens                                                    # List active tokens
+token revoke <value>                                      # Revoke specific token
+callbacks                                                 # Show delivery events
+cheatsheet --host 10.0.0.1 --port 443                   # Technique reference
 ```
 
 ---
 
-## Architecture
+## §5 / Architecture
+
+**Three-Layer Design**: HTTP/TLS server layer → Payload manager with encryption → Interactive CLI console
 
 ```
-cmd/wellspring/main.go            Entry point, flags, server+CLI init
-internal/
-  server/
-    server.go                     Dual TLS listener setup
-    handlers.go                   /p/<token> delivery, raw TLS, decoy
-    tls.go                        ECDSA P-256 self-signed cert generation
-  payload/
-    payload.go                    ELF/PE arch detection
-    manager.go                    Add/remove/list with encrypt-at-rest
-    token.go                      Token generation, validation, TTL
-    encrypt.go                    AES-256-GCM encryption
-  loader/
-    loader.go                     Loader interface, input validation
-    registry.go                   Auto-registration via init()
-    *.go                          12 delivery method implementations
-  callback/tracker.go             In-memory delivery event log
-  antiforensics/expiry.go         Background TTL enforcer, memory zeroing
-  cli/
-    cli.go                        Interactive operator console
-    banner.go                     ASCII art banner
-    colors.go                     Catppuccin Mocha palette
-  theme/theme.go                  Shared ANSI color constants
+cmd/wellspring/
+├── main.go         # Entry point, flags, server+CLI init
+└── internal/
+    ├── server/     # Dual TLS listener infrastructure
+    │   ├── server.go    # HTTPS :443 and raw TLS :4443 setup
+    │   ├── handlers.go  # /p/<token> delivery, decoy nginx responses
+    │   └── tls.go       # ECDSA P-256 self-signed cert generation
+    ├── payload/    # Encrypted payload management
+    │   ├── manager.go   # Add/remove/list with AES-256-GCM at rest
+    │   ├── token.go     # HMAC-SHA256 validation, TTL, IP constraints
+    │   └── encrypt.go   # Memory encryption with zeroing on exit
+    ├── loader/     # 12 delivery method implementations
+    │   ├── registry.go  # Auto-registration via init() functions
+    │   └── *.go         # socat, curl, wget, bash, python, memfd
+    ├── antiforensics/
+    │   └── expiry.go    # Background TTL enforcer, memory zeroing
+    └── cli/        # Interactive operator console
+        ├── cli.go       # Command processing with Catppuccin Mocha
+        └── banner.go    # ASCII art banner and colors
 ```
 
-Single Go binary with no external dependencies. All cryptographic operations use Go stdlib (`crypto/aes`, `crypto/cipher`, `crypto/ecdsa`). The server runs two concurrent TLS listeners with a shared payload manager and token store.
+**Token Security**: HMAC-SHA256 keyed hashing prevents timing attacks, configurable TTL and max-use limits, source IP/CIDR locking with immediate revocation capability.
 
 ---
 
-## Platform Support
+## §6 / Authorization
 
-| Feature | Requirement | Notes |
-|---------|-------------|-------|
-| HTTPS listener | Any Linux | TLS 1.3 minimum, ECDSA P-256 |
-| Raw TLS listener | Any Linux | Token-from-first-line protocol |
-| AES-256-GCM encryption | Any Linux | Go stdlib crypto |
-| memfd_create loaders | Kernel 3.17+ | Fileless execution |
-| /dev/shm staging | Any Linux | tmpfs available on all standard Linux |
-| Memory zeroing | Any Linux | runtime.KeepAlive prevents elision |
+Wellspring is designed for **authorized red team engagements** with explicit written permission. The tool generates and delivers payloads that should only be used against systems you own or have proper authorization to test.
+
+Security vulnerabilities should be reported via [GitHub Security Advisories](https://github.com/Real-Fruit-Snacks/Wellspring/security/advisories) with responsible disclosure.
+
+**Wellspring does not**: provide command and control functionality, exploit any vulnerability, provide persistence mechanisms, bypass endpoint detection, or exfiltrate data—it's purely a payload delivery mechanism.
 
 ---
 
-## Console Commands
-
-```
-Payload Management
-  payload add <path> [--name N]       Load a binary (auto-detects OS/arch)
-  payload list                        Show loaded payloads
-  payload remove <id>                 Remove and zero memory
-
-Stager Generation
-  generate <id> <loader> [flags]      Generate one-liner stager
-  generate <id> all [flags]           Generate ALL compatible stagers
-    --host IP  --port PORT            Server address
-    --ttl 1h  --single-use            Token constraints
-    --max-uses N  --source-lock CIDR  Access restrictions
-
-Information
-  loaders                             List delivery methods
-  tokens                              List active tokens
-  token revoke <value>                Revoke a token
-  callbacks                           Show delivery log
-  cheatsheet --host IP --port PORT    Technique reference
-
-Control
-  exit                                Shutdown + zero all payloads
-```
-
----
-
-## Delivery Methods
-
-| Loader | Requires | Description |
-|--------|----------|-------------|
-| `socat-tls` | socat | OPENSSL pull + exec (raw TLS) |
-| `socat-tcp` | socat | TCP pipe (no TLS) |
-| `socat-memfd` | socat, python3 | socat + memfd_create (fileless) |
-| `socat-pty` | socat | PTY allocation for interactive bootstrap |
-| `curl` | curl | HTTPS pull + exec |
-| `wget` | wget | HTTPS pull + exec |
-| `bash-devtcp` | bash | /dev/tcp raw pull (no external tools) |
-| `python` | python3 | urllib HTTPS pull + exec |
-| `netcat` | nc | Raw pull (no TLS) |
-| `perl` | perl | IO::Socket::SSL HTTPS pull + exec |
-| `memfd` | curl, python3 | curl + memfd_create fileless execution |
-| `devshm` | curl | /dev/shm staging (tmpfs, no disk write) |
-
----
-
-## Security
-
-Report vulnerabilities via [SECURITY.md](SECURITY.md) -- do not open public issues.
-
-Wellspring does **not**:
-
-- Provide command and control functionality
-- Exploit any vulnerability
-- Provide persistence mechanisms
-- Bypass endpoint detection
-- Exfiltrate data
-
----
-
-## License
-
-[MIT](LICENSE) -- Copyright 2026 Real-Fruit-Snacks
+**Real-Fruit-Snacks** — [All projects](https://real-fruit-snacks.github.io/) · [Security](https://github.com/Real-Fruit-Snacks/Wellspring/security/advisories) · [License](LICENSE)
